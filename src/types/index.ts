@@ -1,1 +1,2 @@
-export * from "./ISlashCommand";
+export * from "./ISlashCommand.js";
+export * from "./ClientExtension.js";

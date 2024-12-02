@@ -1,9 +1,9 @@
 import fs from "fs";
 import path from "path";
 import { GatewayIntentBits, Collection, Events } from "discord.js";
-import Client from "./types/ClientExtension";
 import dotenv from "dotenv";
 import { fileURLToPath } from "url";
+import Client from "./types/ClientExtension.js";
 
 dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
@@ -37,40 +37,54 @@ for (const folder of commandFolders) {
   }
 }
 
-client.on("ready", () => {
-  console.log(`Logged in as ${client.user?.tag}!`);
-});
+// client.on("ready", () => {
+//   console.log(`Logged in as ${client.user?.tag}!`);
+// });
 
-client.on(Events.InteractionCreate, async (interaction) => {
-  console.log("interaction", interaction);
-  if (!interaction.isChatInputCommand()) return;
+// client.on(Events.InteractionCreate, async (interaction) => {
+//   console.log("interaction", interaction);
+//   if (!interaction.isChatInputCommand()) return;
 
-  const command = client.commands.get(interaction.commandName);
+//   const command = client.commands.get(interaction.commandName);
 
-  if (!command) {
-    console.error(`No command matching ${interaction.commandName} was found.`);
-    return;
+//   if (!command) {
+//     console.error(`No command matching ${interaction.commandName} was found.`);
+//     return;
+//   }
+
+//   try {
+//     await command.execute(interaction);
+//   } catch (error) {
+//     console.error(error);
+//     if (interaction.replied || interaction.deferred) {
+//       await interaction.followUp({
+//         content: "There was an error while executing this command!",
+//         ephemeral: true,
+//       });
+//     } else {
+//       await interaction.reply({
+//         content: "There was an error while executing this command!",
+//         ephemeral: true,
+//       });
+//     }
+//   }
+// });
+
+const eventsPath = path.join(__dirname, "events");
+const eventFiles = fs
+  .readdirSync(eventsPath)
+  .filter((file) => file.endsWith("event.ts"));
+
+for (const file of eventFiles) {
+  const filePath = path.join(eventsPath, file);
+  const event = await import(filePath).then((m) => m.default);
+  if (event.once) {
+    client.once(event.name, (...args) => event.execute(...args));
+  } else {
+    client.on(event.name, (...args) => event.execute(...args));
   }
-
-  try {
-    await command.execute(interaction);
-  } catch (error) {
-    console.error(error);
-    if (interaction.replied || interaction.deferred) {
-      await interaction.followUp({
-        content: "There was an error while executing this command!",
-        ephemeral: true,
-      });
-    } else {
-      await interaction.reply({
-        content: "There was an error while executing this command!",
-        ephemeral: true,
-      });
-    }
-  }
-});
+}
 
 const token = process.env.DISCORD_BOT_TOKEN;
-console.log("token", token);
 
 client.login(token);
